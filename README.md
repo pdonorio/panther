@@ -81,7 +81,7 @@ cd frontend && npm install && npm run dev
 ```bash
 cd infra
 terraform init
-terraform apply -var 'github_repo=pdonorio/phanter'
+terraform apply -var 'github_repo=pdonorio/panther'
 ```
 
 Gli output vanno riportati nelle *Variables* del repo GitHub:

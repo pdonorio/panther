@@ -3,7 +3,7 @@
 # S3 privato + CloudFront con Origin Access Control + ruolo OIDC per GitHub
 # Actions. Nessuna chiave statica: il deploy assume il ruolo via token OIDC.
 #
-#   terraform init && terraform apply -var 'github_repo=pdonorio/phanter'
+#   terraform init && terraform apply -var 'github_repo=pdonorio/panther'
 
 terraform {
   required_version = ">= 1.6"
@@ -32,7 +32,7 @@ variable "project" {
 variable "github_repo" {
   type        = string
   description = "owner/repo autorizzato ad assumere il ruolo di deploy"
-  default     = "pdonorio/phanter"
+  default     = "pdonorio/panther"
 }
 
 locals {

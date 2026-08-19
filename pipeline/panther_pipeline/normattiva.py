@@ -78,7 +78,7 @@ class NormattivaClient:
             base_url=base_url,
             timeout=timeout,
             follow_redirects=True,
-            headers={"User-Agent": "panther-pipeline/0.1 (+https://github.com/pdonorio/phanter)"},
+            headers={"User-Agent": "panther-pipeline/0.1 (+https://github.com/pdonorio/panther)"},
         )
 
     def __enter__(self) -> Self:
