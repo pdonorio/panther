@@ -10,7 +10,11 @@
 
 import initSqlJs, { type Database, type SqlJsStatic } from 'sql.js'
 
-const DB_URL = '/panther-core.db'
+// Il sito è servito da una sottocartella su GitHub Pages
+// (pdonorio.github.io/panther/), quindi nessun path può essere assoluto.
+// Vite sostituisce BASE_URL a build time con `base` di vite.config.ts.
+const BASE = import.meta.env.BASE_URL
+const DB_URL = `${BASE}panther-core.db`
 const IDB_NAME = 'panther'
 const IDB_STORE = 'cache'
 const KEY_DB = 'core-db'
@@ -58,7 +62,7 @@ export type StatoCaricamento = 'cache' | 'scaricato' | 'aggiornato'
  * può dire all'operatore se sta lavorando su dati freschi o su cache.
  */
 export async function caricaDb(): Promise<StatoCaricamento> {
-  sql ??= await initSqlJs({ locateFile: (f) => `/${f}` })
+  sql ??= await initSqlJs({ locateFile: (f) => `${BASE}${f}` })
 
   const [bufCache, etagCache] = await Promise.all([
     idbGet<ArrayBuffer>(KEY_DB),
@@ -182,7 +186,7 @@ export async function testoIntegrale(
   tabella: Tabella,
   articolo: string,
 ): Promise<TestoIntegrale> {
-  const r = await fetch(`/testi/${tabella}/${encodeURIComponent(articolo)}.json`)
+  const r = await fetch(`${BASE}testi/${tabella}/${encodeURIComponent(articolo)}.json`)
   if (!r.ok) throw new Error(`Testo non disponibile (HTTP ${r.status})`)
   return r.json()
 }

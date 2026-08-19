@@ -4,7 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "copy:wasm": "cp node_modules/sql.js/dist/sql-wasm.wasm public/",
+    "predev": "npm run copy:wasm",
     "dev": "vite",
+    "prebuild": "npm run copy:wasm",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
   },
@@ -16,6 +19,7 @@
   "devDependencies": {
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@types/sql.js": "^1.4.11",
     "@vitejs/plugin-react": "^4.3.1",
     "typescript": "^5.5.4",
     "vite": "^5.4.0",

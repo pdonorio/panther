@@ -18,7 +18,7 @@ Non c'è un'API da interrogare in intervento. Il database viaggia con l'app:
 ```
 Normattiva OpenData  ──(GitHub Actions, notturno)──>  panther-core.db
                                                             │
-                                              S3 privato + CloudFront
+                                                  GitHub Pages
                                                             │
                                               download una tantum
                                                             ▼
@@ -41,8 +41,8 @@ consultato durante un intervento. Viene scaricato per singolo articolo da
 |---|---|
 | `pipeline/` | Python — fetch da Normattiva, parsing NIR, build SQLite |
 | `frontend/` | React + Vite PWA, sql.js |
-| `infra/` | Terraform — S3, CloudFront, ruolo OIDC |
-| `.github/workflows/` | CI, sync notturno dei dati, deploy frontend |
+| `infra/` | Terraform per S3 + CloudFront — **non applicato**, vedi Deploy |
+| `.github/workflows/` | CI, build dati + deploy su GitHub Pages |
 | `docs/` | Verifica delle fonti dati |
 
 ## Quickstart
@@ -76,7 +76,38 @@ dist/manifest.json                      hash e dimensioni, per la cache
 cd frontend && npm install && npm run dev
 ```
 
-### Infrastruttura
+## Deploy
+
+Il sito sta su **GitHub Pages**, a `https://pdonorio.github.io/panther/`.
+Non serve un account cloud e non c'è niente da provisionare: si abilita Pages
+una volta (*Settings → Pages → Source: GitHub Actions*) e da lì in poi
+`deploy.yml` fa tutto.
+
+Un solo workflow costruisce dati e frontend insieme, perché Pages pubblica in
+modo **atomico**: l'artefatto caricato diventa l'intero sito. Gira su push a
+`main`, ogni notte alle 03:17 UTC e a mano. Il giro notturno ripubblica solo
+se `core_db_sha256` è cambiato rispetto al `manifest.json` già online.
+
+Il sito è servito da una **sottocartella**, quindi nessun path può essere
+assoluto: `base` sta in `frontend/vite.config.ts` e il client passa da
+`import.meta.env.BASE_URL`. Con un dominio dedicato tornerebbe `'/'`.
+
+Due limiti noti rispetto a CloudFront, entrambi accettabili qui:
+
+- **Header `Cache-Control` non configurabili.** Dopo una build notturna un
+  client può tenere in cache un DB vecchio per qualche minuto. Su un
+  riferimento normativo aggiornato una volta al giorno è irrilevante.
+- **Rivalidazione `ETag` da verificare.** L'avvio offline in `db.ts` conta su
+  `If-None-Match` → `304`. Va confermato sul primo deploy con
+  `curl -I https://pdonorio.github.io/panther/panther-core.db`; se non
+  reggesse, il fallback è confrontare `core_db_sha256` dal `manifest.json`,
+  che la pipeline già pubblica.
+
+### Alternativa: AWS
+
+`infra/` contiene il Terraform per S3 privato + CloudFront con OAC e ruolo
+OIDC, scritto e mai applicato. Serve se in futuro vuoi un dominio dedicato o
+il controllo degli header di cache:
 
 ```bash
 cd infra
@@ -84,9 +115,9 @@ terraform init
 terraform apply -var 'github_repo=pdonorio/panther'
 ```
 
-Gli output vanno riportati nelle *Variables* del repo GitHub:
-`AWS_DEPLOY_ROLE_ARN`, `AWS_REGION`, `S3_BUCKET`,
-`CLOUDFRONT_DISTRIBUTION_ID`, `PANTHER_DOMAIN`.
+Gli output vanno poi nelle *Variables* del repo (`AWS_DEPLOY_ROLE_ARN`,
+`AWS_REGION`, `S3_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`, `PANTHER_DOMAIN`) e
+il workflow di deploy va riportato a due job separati.
 
 ## I dati
 
@@ -140,8 +171,9 @@ riflette. Il campo `importi_aggiornati_al` è obbligatorio in UI.
 | Client API Normattiva | ✅ funzionante, verificato su dati reali |
 | Parser CP / CdS | ✅ 945 e 266 articoli, 25 test verdi |
 | Build SQLite + FTS5 | ✅ 0.5 MB core + 2.2 MB testi |
-| Workflow CI / sync / deploy | ✅ scritti, non ancora eseguiti in cloud |
-| Terraform | ⚠️ scritto, mai applicato |
+| Workflow CI / deploy | ✅ scritti, non ancora eseguiti in cloud |
+| GitHub Pages | ⚠️ da abilitare nelle Settings del repo |
+| Terraform (AWS) | 💤 scritto, mai applicato — alternativa, non serve ora |
 | Frontend | 🚧 scheletro: caricamento DB e ricerca ci sono, manca la UI vera |
 | Contenuto editoriale | ❌ da iniziare |
 | Licenza dei dati | ❓ **da chiarire** (vedi sotto) |
