@@ -10,6 +10,7 @@ import io
 import logging
 import time
 import zipfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
@@ -17,6 +18,8 @@ from typing import Self
 import httpx
 
 log = logging.getLogger(__name__)
+
+ZIP_MAGIC = b"PK\x03\x04"
 
 BASE_URL = "https://api.normattiva.it/t/normattiva.api/bff-opendata/v1"
 
@@ -59,6 +62,10 @@ class NormattivaError(RuntimeError):
     pass
 
 
+class NormattivaClientError(NormattivaError):
+    """Errore 4xx: la richiesta è sbagliata, ritentarla non cambia nulla."""
+
+
 class NormattivaClient:
     """Wrapper minimale con retry/backoff.
 
@@ -69,9 +76,12 @@ class NormattivaClient:
         self,
         base_url: str = BASE_URL,
         timeout: float = 300.0,
-        max_retries: int = 4,
+        max_retries: int = 6,
+        backoff: float = 1.0,
     ) -> None:
         self._max_retries = max_retries
+        # Moltiplicatore dell'attesa esponenziale; i test lo azzerano.
+        self._backoff = backoff
         # follow_redirects è OBBLIGATORIO: il download risponde 302 verso un
         # URL firmato monouso su .../file-download/v1/download/<token>.
         self._client = httpx.Client(
@@ -90,7 +100,19 @@ class NormattivaClient:
     def close(self) -> None:
         self._client.close()
 
-    def _request(self, method: str, path: str, **kw: object) -> httpx.Response:
+    def _request(
+        self,
+        method: str,
+        path: str,
+        valida: Callable[[httpx.Response], None] | None = None,
+        **kw: object,
+    ) -> httpx.Response:
+        """Esegue la richiesta con retry/backoff.
+
+        `valida` ispeziona una risposta 2xx e solleva NormattivaError se il
+        corpo non è utilizzabile: serve perché questa API risponde 200 anche
+        quando il payload è vuoto (vedi scarica_collezione).
+        """
         last: Exception | None = None
         for attempt in range(self._max_retries):
             try:
@@ -99,16 +121,24 @@ class NormattivaClient:
                     raise NormattivaError(f"{r.status_code} su {path}")
                 if r.status_code >= 400:
                     # 4xx client-side: inutile ritentare, il body spiega il perché.
-                    raise NormattivaError(f"{r.status_code} su {path}: {r.text[:300]}")
+                    raise NormattivaClientError(f"{r.status_code} su {path}: {r.text[:300]}")
+                if valida is not None:
+                    valida(r)
                 return r
+            except NormattivaClientError:
+                # Deve uscire subito: è sottoclasse di NormattivaError e senza
+                # questo ramo finirebbe nel retry, contro quanto dice il commento.
+                raise
             except (httpx.TransportError, NormattivaError) as e:
                 last = e
                 if attempt == self._max_retries - 1:
                     break
-                delay = 2**attempt
-                log.warning("tentativo %d fallito (%s), riprovo fra %ds", attempt + 1, e, delay)
+                delay = self._backoff * 2**attempt
+                log.warning("tentativo %d fallito (%s), riprovo fra %gs", attempt + 1, e, delay)
                 time.sleep(delay)
-        raise NormattivaError(f"esaurito i tentativi su {path}") from last
+        # Il messaggio dell'ultimo errore è la diagnosi: va tenuto in vista,
+        # non solo incatenato con `from`.
+        raise NormattivaError(f"esaurito i tentativi su {path}: {last}") from last
 
     # --- lettura -----------------------------------------------------------
 
@@ -147,10 +177,31 @@ class NormattivaClient:
           - `formato`          = formato FILE   (XML/AKN/JSON/PDF/...)
           - `formatoRichiesta` = VIGENZA        (O/M/V)
         Invertirli restituisce 400 con code 1006.
+
+        ATTENZIONE anche al payload: l'endpoint restituisce a intermittenza
+        `200 application/octet-stream` con corpo VUOTO, e succede su qualunque
+        formato — osservato il 2026-08-19 su XML e AKN a pochi minuti di
+        distanza, in modo alternato. Senza controllo il file vuoto arriva fino
+        a zipfile, che muore con un BadZipFile incomprensibile. Qui invece è
+        un errore ritentabile: al tentativo successivo di solito arriva.
         """
+
+        def valida(r: httpx.Response) -> None:
+            if not r.content:
+                raise NormattivaError(
+                    "corpo vuoto (200 con 0 byte): capita a intermittenza, si ritenta"
+                )
+            if not r.content.startswith(ZIP_MAGIC):
+                raise NormattivaError(
+                    f"payload non ZIP: {len(r.content)} byte, "
+                    f"content-type={r.headers.get('content-type')!r}, "
+                    f"inizio={r.content[:120]!r}"
+                )
+
         r = self._request(
             "GET",
             "/api/v1/collections/download/collection-preconfezionata",
+            valida=valida,
             params={"nome": nome, "formato": formato, "formatoRichiesta": vigenza},
         )
         return r.content

@@ -49,11 +49,35 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      # Gli XML sorgente dell'ultima build riuscita. Servono da rete di
+      # sicurezza: l'API di Normattiva ogni tanto è indisponibile e senza
+      # dati non si pubblica NULLA, nemmeno una modifica al solo frontend
+      # (Pages sostituisce il sito intero, non si fa upload parziale).
+      - uses: actions/cache@v4
+        with:
+          path: pipeline/.cache/normattiva
+          key: normattiva-xml-${{ github.run_id }}
+          restore-keys: normattiva-xml-
+
+      - name: Installa pipeline
+        working-directory: pipeline
+        run: pip install -e .
+
       - name: Build dati
+        id: dati
+        continue-on-error: true
+        working-directory: pipeline
+        run: python -m panther_pipeline.build --out ../dist-dati
+
+      # Il client ritenta già da solo sui 5xx e sulle risposte vuote; se
+      # arriva qui, Normattiva è giù sul serio. Meglio ripubblicare i dati di
+      # ieri che lasciare il sito indietro di un intero deploy.
+      - name: Fallback sugli XML in cache
+        if: steps.dati.outcome == 'failure'
         working-directory: pipeline
         run: |
-          pip install -e .
-          python -m panther_pipeline.build --out ../dist-dati
+          echo "::warning::Download da Normattiva fallito, uso gli XML in cache."
+          python -m panther_pipeline.build --offline --out ../dist-dati
 
       # Il DB è deterministico a parità di input. Il cron quindi ripubblica
       # solo se qualcosa è cambiato davvero; un push a main pubblica sempre,
@@ -80,6 +104,9 @@ jobs:
             cat dist-dati/manifest.json
             echo '```'
             echo "Pubblica: ${{ steps.diff.outputs.pubblica }}"
+            if [ "${{ steps.dati.outcome }}" = "failure" ]; then
+              echo "⚠️ Dati dalla cache: Normattiva non raggiungibile."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build frontend

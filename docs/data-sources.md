@@ -57,6 +57,28 @@ L'endpoint risponde `302` verso un URL firmato monouso su
 `/t/normattiva.api/file-download/v1/download/<token>`: **serve `curl -L`** /
 `follow_redirects=True`.
 
+### Il download restituisce a intermittenza un corpo vuoto
+
+Verificato il 2026-08-19: lo stesso URL risponde `200 application/octet-stream`
+con `Transfer-Encoding: chunked` e **0 byte**, per poi funzionare pochi minuti
+dopo. Non dipende dal formato — nel giro di due minuti:
+
+| | primo giro | secondo giro |
+|---|---|---|
+| `formato=XML` | **0 byte** | 6 918 447 byte |
+| `formato=AKN` | 10 531 559 byte | **0 byte** |
+| `formato=JSON` | — | 8 992 819 byte |
+
+Gli endpoint di lettura (`collection-predefinite`) restavano sani nel
+frattempo, quindi non è un'indisponibilità generale del servizio: sembra una
+race fra l'emissione del token firmato e la materializzazione del file.
+
+Conseguenza pratica: **`200` non basta come criterio di successo.** Il client
+controlla il magic ZIP (`PK\x03\x04`) e tratta il corpo vuoto come errore
+ritentabile — senza, il file vuoto arriva fino a `zipfile` e muore con un
+`BadZipFile` che non dice niente. Con 6 tentativi e backoff esponenziale non
+si è più visto fallire il giro completo.
+
 ## 3. La collezione «Codici» copre entrambi i codici
 
 `GET /collections/collection-predefinite` elenca `Codici` — 40 atti, rigenerata

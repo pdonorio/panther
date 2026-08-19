@@ -129,6 +129,11 @@ Un solo download copre tutto il fabbisogno: la collezione preconfezionata
 *Codici* (`formato=XML`, `formatoRichiesta=V`) è uno ZIP da ~6.9 MB con 40 atti,
 fra cui entrambi quelli che ci servono.
 
+⚠️ Il download **restituisce a intermittenza `200` con corpo vuoto**, su
+qualunque formato. Il client controlla il magic ZIP e ritenta; il workflow, se
+proprio non ce la fa, ripubblica dagli XML dell'ultima build riuscita tenuti in
+cache. Dettagli e misure in [`docs/data-sources.md`](docs/data-sources.md).
+
 ### Due parser, non uno
 
 I due codici hanno strutture diverse e questa è la complessità centrale della
