@@ -1,0 +1,81 @@
+/* UX scura istituzionale, pensata per uso a una mano su smartphone:
+   comandi in basso, target ampi, contrasto alto anche in pieno sole. */
+:root {
+  --bg: #0b0f14;
+  --sup: #141b24;
+  --bordo: #22303f;
+  --testo: #e7edf3;
+  --fioco: #8fa3b8;
+  --acc: #3d8bfd;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--testo);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* iPhone con notch: non far finire i comandi sotto la home bar. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+main { max-width: 46rem; margin: 0 auto; padding: 1rem; }
+
+.centro { display: grid; place-content: center; height: 100%; text-align: center; }
+
+header { display: flex; align-items: baseline; gap: .75rem; }
+h1 { font-size: 1.35rem; margin: 0 0 .75rem; letter-spacing: .02em; }
+
+.badge {
+  font-size: .72rem; color: var(--fioco);
+  border: 1px solid var(--bordo); border-radius: 999px; padding: .1rem .5rem;
+}
+
+.tab { display: flex; gap: .5rem; margin-bottom: .75rem; }
+.tab button {
+  flex: 1; padding: .6rem; border-radius: .5rem; font-size: .9rem;
+  background: var(--sup); color: var(--fioco);
+  border: 1px solid var(--bordo);
+}
+.tab button.attivo { color: var(--testo); border-color: var(--acc); }
+
+.ricerca {
+  width: 100%; padding: .85rem 1rem; font-size: 1.05rem;
+  background: var(--sup); color: var(--testo);
+  border: 1px solid var(--bordo); border-radius: .6rem;
+}
+.ricerca:focus { outline: 2px solid var(--acc); outline-offset: 1px; }
+
+.risultati { list-style: none; margin: .75rem 0 0; padding: 0; }
+.risultati li + li { margin-top: .4rem; }
+.risultati button {
+  display: grid; gap: .15rem; width: 100%; text-align: left;
+  padding: .75rem; border-radius: .5rem;
+  background: var(--sup); color: inherit; border: 1px solid var(--bordo);
+}
+.art { font-variant-numeric: tabular-nums; color: var(--acc); font-size: .8rem; }
+.tit { font-weight: 600; }
+.sintesi { color: var(--fioco); font-size: .85rem; }
+.vuoto { padding: 1rem; text-align: center; }
+
+.testo {
+  position: relative; margin-top: 1rem; padding: 1rem;
+  background: var(--sup); border: 1px solid var(--bordo); border-radius: .6rem;
+}
+.testo h2 { font-size: 1rem; margin: 0 2rem .5rem 0; }
+.testo p { margin: 0 0 .6rem; }
+.chiudi {
+  position: absolute; top: .4rem; right: .4rem;
+  width: 2rem; height: 2rem; font-size: 1.3rem; line-height: 1;
+  background: transparent; color: var(--fioco); border: 0;
+}
+
+.fioco { color: var(--fioco); font-size: .85rem; }
+footer { margin: 2rem 0 1rem; text-align: center; }
+
+button { cursor: pointer; font: inherit; }

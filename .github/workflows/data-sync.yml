@@ -1,0 +1,91 @@
+name: Nightly Data Sync
+
+on:
+  schedule:
+    # 03:17 UTC — orario dispari di proposito: evita il picco di job in :00.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      force_upload:
+        description: "Carica su S3 anche se i dati non sono cambiati"
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write      # OIDC verso AWS
+  contents: read
+
+concurrency:
+  group: data-sync
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install pipeline
+        working-directory: pipeline
+        run: pip install -e .
+
+      - name: Build artefatti
+        working-directory: pipeline
+        run: python -m panther_pipeline.build --out ../dist
+
+      # Il DB è deterministico a parità di input: se l'hash non cambia, non
+      # ha senso invalidare la CDN e far riscaricare 500KB a tutti i client.
+      - name: Confronta con la build pubblicata
+        id: diff
+        run: |
+          NUOVO=$(jq -r .core_db_sha256 dist/manifest.json)
+          VECCHIO=$(curl -fsSL "https://${{ vars.PANTHER_DOMAIN }}/manifest.json" \
+                    | jq -r .core_db_sha256 2>/dev/null || echo "assente")
+          echo "nuovo=$NUOVO vecchio=$VECCHIO"
+          if [ "$NUOVO" = "$VECCHIO" ] && [ "${{ inputs.force_upload }}" != "true" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Riepilogo
+        run: |
+          {
+            echo "### Data sync"
+            echo '```json'
+            cat dist/manifest.json
+            echo '```'
+            echo "Cambiato: ${{ steps.diff.outputs.changed }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: AWS OIDC
+        if: steps.diff.outputs.changed == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Upload su S3
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          # I testi per articolo sono immutabili a parità di contenuto: cache lunga.
+          aws s3 sync dist/testi/ "s3://${{ vars.S3_BUCKET }}/testi/" \
+            --delete --cache-control "public,max-age=604800,immutable"
+          # Il DB e il manifest devono rivalidare a ogni avvio: ETag + no-cache.
+          aws s3 cp dist/panther-core.db "s3://${{ vars.S3_BUCKET }}/panther-core.db" \
+            --cache-control "public,max-age=0,must-revalidate"
+          aws s3 cp dist/manifest.json "s3://${{ vars.S3_BUCKET }}/manifest.json" \
+            --cache-control "public,max-age=0,must-revalidate"
+
+      - name: Invalidazione CloudFront (mirata)
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/panther-core.db" "/manifest.json"

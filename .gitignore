@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Artefatti pipeline (rigenerati dal build)
+dist/
+pipeline/dist/
+pipeline/.cache/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

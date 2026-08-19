@@ -1,0 +1,56 @@
+name: Frontend Build & Deploy
+
+on:
+  push:
+    branches: [main]
+    paths: ["frontend/**", ".github/workflows/frontend.yml"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: frontend-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20", cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - working-directory: frontend
+        run: npm ci
+      - working-directory: frontend
+        run: npm run build
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Sync su S3
+        working-directory: frontend
+        run: |
+          # Asset con hash nel nome: cache immutabile.
+          # ATTENZIONE: --delete opera sull'intero bucket, che ospita anche gli
+          # artefatti dati prodotti da data-sync.yml. Senza queste --exclude il
+          # deploy del frontend cancellerebbe il database.
+          aws s3 sync dist/ "s3://${{ vars.S3_BUCKET }}/" --delete \
+            --exclude "index.html" --exclude "sw.js" \
+            --exclude "panther-core.db" --exclude "manifest.json" \
+            --exclude "testi/*" \
+            --cache-control "public,max-age=31536000,immutable"
+          # Entry point e service worker devono rivalidare sempre.
+          aws s3 cp dist/index.html "s3://${{ vars.S3_BUCKET }}/index.html" \
+            --cache-control "public,max-age=0,must-revalidate"
+          aws s3 cp dist/sw.js "s3://${{ vars.S3_BUCKET }}/sw.js" \
+            --cache-control "public,max-age=0,must-revalidate" || true
+
+      - name: Invalidazione CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" \
+            --paths "/index.html" "/sw.js"

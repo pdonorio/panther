@@ -1,0 +1,147 @@
+project:
+  name: Panther
+  subtitle: Toolkit Operativo del Poliziotto
+  type: Progressive Web App (PWA) Offline-First
+  budget: Zero (Free Tier AWS / GitHub Actions)
+  repo_dir: phanter          # typo storico, mantenuto volutamente
+  spec_revision: 2
+  spec_revised: 2026-08-18
+
+architecture:
+  pattern: Static Site Generation (SSG) + Client-Side SQLite
+  components:
+    - name: Data_Pipeline
+      type: Python Script
+      execution: GitHub Actions (Cron Job notturno)
+      source:
+        api: https://api.normattiva.it/t/normattiva.api/bff-opendata/v1
+        auth: nessuna
+        openapi: https://dati.normattiva.it/assets/come_fare_per/openapi-bff-opendata.json
+        verificato: 2026-08-18   # vedi docs/data-sources.md
+      responsibilities:
+        - Bulk import iniziale via collections/download/collection-preconfezionata
+          (nome=Codici, formato=XML, formatoRichiesta=V) -> ZIP ~6.9MB, 40 atti
+        - Sync incrementale via ricerca/aggiornati fra due date
+        - Parsing NIR a DUE strategie distinte (vedi database_schema.parsing)
+        - Normalizzazione testo (apostrofi ASCII -> accenti) per FTS
+        - Separazione blocchi AGGIORNAMENTO dal corpo normativo
+        - Merge con overlay editoriale (dati non presenti nelle fonti pubbliche)
+        - Emissione DUE artefatti SQLite (vedi delivery.split)
+
+    - name: Infrastructure
+      type: Infrastructure as Code (Terraform)
+      provider: AWS
+      services:
+        - Amazon S3: Bucket privato per hosting frontend e file SQLite.
+        - Amazon CloudFront: CDN, OAC verso S3, terminazione SSL, ETag caching.
+        - AWS IAM: Ruoli OIDC per deploy da GitHub Actions senza chiavi statiche.
+
+    - name: Frontend
+      type: React / Vite PWA
+      runtime: Browser Client
+      libraries:
+        - sql.js (o wa-sqlite) per esecuzione WebAssembly
+      responsibilities:
+        - Download panther-core.db da CloudFront (cache control via ETag)
+        - Archiviazione in IndexedDB locale (OPFS come opzione futura)
+        - Query SQL e FTS in locale (zero latenza, 100% offline)
+        - Fetch on-demand del testo integrale (vedi delivery.split)
+        - UX scura/istituzionale, responsiva, uso a singola mano da smartphone
+
+# --- REVISIONE 2: strategia di consegna dati ---------------------------------
+delivery:
+  split:
+    rationale: >
+      Il testo integrale dei due codici pesa ~2.9MB non compresso (CP 1.19MB +
+      CdS 1.69MB). Includerlo nel bundle iniziale penalizza il primo avvio su
+      rete mobile, ed e' il campo meno consultato in intervento.
+    artifacts:
+      - name: panther-core.db
+        content: >
+          Tutti i campi operativi + indici FTS5. Esclude testo_integrale.
+        target_size: < 2 MB (gzip)
+        delivery: download completo al primo avvio, cache IndexedDB
+      - name: testi/<urn>.json
+        content: Testo integrale per singolo articolo
+        delivery: fetch on-demand da CloudFront, cache opportunistica
+    note: >
+      testo_integrale_url resta nello schema e punta al permalink Normattiva
+      come fallback quando l'utente e' online.
+
+database_schema:
+  engine: SQLite (versione Wasm)
+  parsing:
+    strutturato:
+      applies_to: [cds]
+      method: XPath su <articolo id="N"> / <comma> / <corpo>
+      note: D.Lgs. 285/1992 espone 266 articoli strutturati
+    annesso_flat:
+      applies_to: [reati_cp]
+      method: >
+        Segmentazione testuale degli <h:p> dentro <annesso> sugli header
+        "Art. N." ; la riga fra parentesi successiva e' la rubrica.
+      note: >
+        R.D. 1398/1930 e' un decreto di approvazione: espone solo 3 <articolo>
+        propri, il codice vero e' nell'annesso come ~6800 <h:p> piatti.
+
+  tables:
+    - name: reati_cp
+      description: Ricerca articoli Codice Penale
+      fields: id, articolo, titolo, sintesi_operativa, pene, aggravanti, procedibilita, note_operatore, testo_integrale, testo_integrale_url, legge_numero, legge_anno, fonte, data_accesso, urn, vigenza_data, hash_fonte
+      indexes: FTS5 su articolo, titolo, sintesi_operativa
+      provenance: R.D. 19/10/1930 n.1398
+
+    - name: cds
+      description: Ricerca Codice della Strada
+      fields: id, articolo, titolo, sintesi_operativa, importo_sanzione, pagamento_ridotto, pagamento_oltre_60_giorni, note_operatore, testo_verbale, testo_integrale, testo_integrale_url, legge_numero, legge_anno, fonte, data_accesso, urn, vigenza_data, hash_fonte, importi_aggiornati_al
+      indexes: FTS5 su articolo, titolo, sintesi_operativa
+      provenance: D.Lgs. 30/04/1992 n.285
+      warning: >
+        Gli importi nel testo NON sono aggiornati: art. 195 c.d.s. impone
+        rivalutazione ISTAT biennale. Campo importi_aggiornati_al obbligatorio
+        in UI.
+
+    - name: interventi_minori
+      description: Procedure operative minori
+      fields: id, titolo, categoria, tag (JSON), descrizione, procedura_operativa, accertamenti_fondamentali, errori_ricorrenti, riferimenti_normativi (JSON), atti_da_redigere (JSON)
+      indexes: FTS5 su titolo, categoria, descrizione
+      provenance: contenuto editoriale interno (nessuna fonte pubblica)
+
+  editorial_overlay:
+    rationale: >
+      Molti campi non esistono in nessuna fonte pubblica e sono contenuto
+      redazionale. Vanno versionati separatamente dai dati importati, cosi' il
+      sync notturno non li sovrascrive.
+    storage: pipeline/editorial/*.yaml  (chiave: urn + articolo)
+    fields: [sintesi_operativa, note_operatore, aggravanti, procedibilita,
+             testo_verbale, importo_sanzione, pagamento_ridotto,
+             pagamento_oltre_60_giorni]
+
+legal:
+  data_licence: DA VERIFICARE
+  note: >
+    dati.normattiva.it referenzia sia CC BY 4.0 sia CC BY-NC 4.0 senza che sia
+    stato possibile stabilire quale copra la collezione Codici. Bloccante per
+    la redistribuzione pubblica di panther-core.db. Vedi docs/data-sources.md §5.
+  disclaimer_required: >
+    Strumento di consultazione operativa, non fonte ufficiale. Il testo
+    ufficiale e' quello pubblicato in Gazzetta Ufficiale.
+
+ci_cd:
+  provider: GitHub Actions
+  workflows:
+    - name: Nightly Data Sync
+      trigger: schedule (cron) + workflow_dispatch
+      steps:
+        - Setup Python
+        - Esecuzione Data_Pipeline
+        - Diff vs artefatto precedente; skip upload se invariato
+        - Upload panther-core.db + testi/ su S3
+        - Invalidation CloudFront mirata
+    - name: Frontend Build & Deploy
+      trigger: push su branch main (path frontend)
+      steps:
+        - Setup Node.js
+        - Build React/Vite
+        - OIDC Auth verso AWS
+        - Sync S3 dist/ cartella
