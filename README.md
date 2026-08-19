@@ -22,7 +22,7 @@ Normattiva OpenData  ──(GitHub Actions, notturno)──>  panther-core.db
                                                             │
                                               download una tantum
                                                             ▼
-                                       IndexedDB  ──>  sql.js (WASM)
+                                       IndexedDB  ──>  SQLite (WASM)
                                                             │
                                                     query FTS5 locali
 ```
@@ -35,12 +35,26 @@ Il **testo integrale** non sta nel database: pesa ~2.2 MB ed è il campo meno
 consultato durante un intervento. Viene scaricato per singolo articolo da
 `/testi/<tabella>/<articolo>.json` e messo in cache dal service worker.
 
+### Perché SQLite WASM ufficiale e non sql.js
+
+Il motore è [`@sqlite.org/sqlite-wasm`](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm),
+non `sql.js`, e non è una preferenza: **i binari di sql.js non hanno FTS5.**
+`pragma_compile_options` sulla 1.14.2 dà `ENABLE_FTS3` e nient'altro, quindi
+`cds_fts` non si apre proprio — *«no such module: fts5»* — e `bm25()` non
+esiste. Tutta la ricerca del progetto ci passa. La build ufficiale espone
+`ENABLE_FTS5`, `bm25()` e il tokenizer `unicode61 remove_diacritics 2`.
+
+Il DB arriva come byte da IndexedDB e si apre con `sqlite3_deserialize`:
+resta in memoria, senza OPFS. Il `.wasm` lo risolve Vite (il pacchetto usa
+`new URL('sqlite3.wasm', import.meta.url)`), quindi il nome del file non è
+scritto da nessuna parte a mano — e non può sfasarsi come è già successo.
+
 ## Struttura
 
 | Cartella | Contenuto |
 |---|---|
 | `pipeline/` | Python — fetch da Normattiva, parsing NIR, build SQLite |
-| `frontend/` | React + Vite PWA, sql.js |
+| `frontend/` | React + Vite PWA, SQLite WASM |
 | `infra/` | Terraform per S3 + CloudFront — **non applicato**, vedi Deploy |
 | `.github/workflows/` | CI, build dati + deploy su GitHub Pages |
 | `docs/` | Verifica delle fonti dati |
@@ -92,16 +106,22 @@ Il sito è servito da una **sottocartella**, quindi nessun path può essere
 assoluto: `base` sta in `frontend/vite.config.ts` e il client passa da
 `import.meta.env.BASE_URL`. Con un dominio dedicato tornerebbe `'/'`.
 
-Due limiti noti rispetto a CloudFront, entrambi accettabili qui:
+Rispetto a CloudFront si perde il controllo degli header: Pages serve tutto con
+`cache-control: max-age=600`, non configurabile. Dopo una build notturna un
+client può quindi tenere in cache un DB vecchio per una decina di minuti — su
+un riferimento normativo aggiornato una volta al giorno, irrilevante.
 
-- **Header `Cache-Control` non configurabili.** Dopo una build notturna un
-  client può tenere in cache un DB vecchio per qualche minuto. Su un
-  riferimento normativo aggiornato una volta al giorno è irrilevante.
-- **Rivalidazione `ETag` da verificare.** L'avvio offline in `db.ts` conta su
-  `If-None-Match` → `304`. Va confermato sul primo deploy con
-  `curl -I https://pdonorio.github.io/panther/panther-core.db`; se non
-  reggesse, il fallback è confrontare `core_db_sha256` dal `manifest.json`,
-  che la pipeline già pubblica.
+La **rivalidazione `ETag`**, da cui dipende l'avvio offline di `db.ts`, invece
+regge — verificata sul deploy reale:
+
+```console
+$ curl -sI https://pdonorio.github.io/panther/panther-core.db | grep -i etag
+etag: "6a85b3a1-84000"
+$ curl -s -o /dev/null -w '%{http_code} %{size_download}b\n' \
+    -H 'If-None-Match: "6a85b3a1-84000"' \
+    https://pdonorio.github.io/panther/panther-core.db
+304 0b
+```
 
 ### Alternativa: AWS
 
@@ -176,8 +196,8 @@ riflette. Il campo `importi_aggiornati_al` è obbligatorio in UI.
 | Client API Normattiva | ✅ funzionante, verificato su dati reali |
 | Parser CP / CdS | ✅ 945 e 266 articoli, 25 test verdi |
 | Build SQLite + FTS5 | ✅ 0.5 MB core + 2.2 MB testi |
-| Workflow CI / deploy | ✅ scritti, non ancora eseguiti in cloud |
-| GitHub Pages | ⚠️ da abilitare nelle Settings del repo |
+| Workflow CI / deploy | ✅ verdi sul deploy reale |
+| GitHub Pages | ✅ online, ETag verificato (`304`) |
 | Terraform (AWS) | 💤 scritto, mai applicato — alternativa, non serve ora |
 | Frontend | 🚧 scheletro: caricamento DB e ricerca ci sono, manca la UI vera |
 | Contenuto editoriale | ❌ da iniziare |

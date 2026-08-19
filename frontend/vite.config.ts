@@ -9,11 +9,13 @@ const BASE = '/panther/'
 
 export default defineConfig({
   base: BASE,
+  // In dev il pre-bundling di esbuild riscriverebbe l'`import.meta.url` con
+  // cui sqlite-wasm trova il proprio .wasm, e il modulo non parte più.
+  optimizeDeps: { exclude: ['@sqlite.org/sqlite-wasm'] },
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['sql-wasm.wasm'],
       manifest: {
         name: 'Panther — Toolkit Operativo',
         short_name: 'Panther',
@@ -33,7 +35,12 @@ export default defineConfig({
       },
       workbox: {
         // Il .db non passa dal precache: lo gestisce db.ts via IndexedDB+ETag.
+        // Il .wasm sì: è in assets/ con l'hash nel nome, quindi il precache lo
+        // invalida da solo quando sql.js cambia versione.
         globPatterns: ['**/*.{js,css,html,wasm,png,svg}'],
+        // sqlite-wasm porta con sé il worker e il proxy OPFS (~250 KB): qui
+        // il DB sta in memoria, non li usiamo, e non vanno scaricati all'avvio.
+        globIgnores: ['**/sqlite3-worker1-*.js', '**/sqlite3-opfs-async-proxy-*.js'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallbackDenylist: [
           new RegExp(`^${BASE}testi/`),

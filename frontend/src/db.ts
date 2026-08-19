@@ -8,7 +8,13 @@
  *   3. Il testo integrale NON è nel DB: si prende on-demand da /testi/.
  */
 
-import initSqlJs, { type Database, type SqlJsStatic } from 'sql.js'
+// Build WASM ufficiale di SQLite, non sql.js: quest'ultimo è compilato con
+// ENABLE_FTS3 e basta (verificato su pragma_compile_options, v1.14.2), quindi
+// `cds_fts` non si apre nemmeno — "no such module: fts5". Qui invece FTS5,
+// bm25() e `remove_diacritics 2` ci sono. Il .wasm lo risolve Vite da solo:
+// il pacchetto usa `new URL('sqlite3.wasm', import.meta.url)`, che in build
+// diventa un asset con l'hash nel nome e l'URL già completo di base.
+import sqlite3InitModule, { type Database, type Sqlite3Static } from '@sqlite.org/sqlite-wasm'
 
 // Il sito è servito da una sottocartella su GitHub Pages
 // (pdonorio.github.io/panther/), quindi nessun path può essere assoluto.
@@ -52,17 +58,42 @@ async function idbSet(key: string, valore: unknown): Promise<void> {
 
 // ------------------------------------------------------------------ caricamento
 
-let sql: SqlJsStatic | null = null
+let sqlite3: Sqlite3Static | null = null
 let db: Database | null = null
 
 export type StatoCaricamento = 'cache' | 'scaricato' | 'aggiornato'
+
+/**
+ * Apre in memoria il DB scaricato. `sqlite3_deserialize` vuole un puntatore
+ * nell'heap del modulo, non un typed array: FREEONCLOSE gli cede la proprietà
+ * di quella memoria, così a `close()` non resta niente da liberare a mano.
+ */
+function apriDaBytes(buf: ArrayBuffer): Database {
+  const s = sqlite3!
+  const bytes = new Uint8Array(buf)
+  const p = s.wasm.allocFromTypedArray(bytes)
+  const d = new s.oo1.DB()
+  d.checkRc(
+    s.capi.sqlite3_deserialize(
+      d.pointer!,
+      'main',
+      p,
+      bytes.byteLength,
+      bytes.byteLength,
+      s.capi.SQLITE_DESERIALIZE_FREEONCLOSE | s.capi.SQLITE_DESERIALIZE_RESIZEABLE,
+    ),
+  )
+  return d
+}
 
 /**
  * Carica il DB, preferendo la copia locale. Ritorna come è andata, così la UI
  * può dire all'operatore se sta lavorando su dati freschi o su cache.
  */
 export async function caricaDb(): Promise<StatoCaricamento> {
-  sql ??= await initSqlJs({ locateFile: (f) => `${BASE}${f}` })
+  // Il modulo logga in console un avviso su OPFS non disponibile: qui il DB
+  // sta in memoria e la persistenza è IndexedDB, quindi è atteso.
+  sqlite3 ??= await sqlite3InitModule()
 
   const [bufCache, etagCache] = await Promise.all([
     idbGet<ArrayBuffer>(KEY_DB),
@@ -71,7 +102,7 @@ export async function caricaDb(): Promise<StatoCaricamento> {
 
   // Offline: se abbiamo una copia si parte comunque. È il caso d'uso primario.
   if (!navigator.onLine && bufCache) {
-    db = new sql.Database(new Uint8Array(bufCache))
+    db = apriDaBytes(bufCache)
     return 'cache'
   }
 
@@ -83,26 +114,26 @@ export async function caricaDb(): Promise<StatoCaricamento> {
     })
   } catch (e) {
     if (bufCache) {
-      db = new sql.Database(new Uint8Array(bufCache))
+      db = apriDaBytes(bufCache)
       return 'cache'
     }
     throw e
   }
 
   if (risposta.status === 304 && bufCache) {
-    db = new sql.Database(new Uint8Array(bufCache))
+    db = apriDaBytes(bufCache)
     return 'cache'
   }
   if (!risposta.ok) {
     if (bufCache) {
-      db = new sql.Database(new Uint8Array(bufCache))
+      db = apriDaBytes(bufCache)
       return 'cache'
     }
     throw new Error(`Download del database fallito: HTTP ${risposta.status}`)
   }
 
   const buf = await risposta.arrayBuffer()
-  db = new sql.Database(new Uint8Array(buf))
+  db = apriDaBytes(buf)
 
   const etag = risposta.headers.get('ETag')
   await idbSet(KEY_DB, buf)
@@ -114,6 +145,16 @@ export async function caricaDb(): Promise<StatoCaricamento> {
 function richiediDb(): Database {
   if (!db) throw new Error('Database non caricato: chiamare prima caricaDb()')
   return db
+}
+
+/** Righe come oggetti. `exec` gestisce da sé prepare/step/finalize. */
+function righe<T>(sql: string, bind?: Record<string, unknown>): T[] {
+  return richiediDb().exec({
+    sql,
+    bind: bind as never,
+    rowMode: 'object',
+    returnValue: 'resultRows',
+  }) as unknown as T[]
 }
 
 // ----------------------------------------------------------------------- query
@@ -144,31 +185,24 @@ export function cerca(tabella: Tabella, query: string, limite = 50): Risultato[]
 
   if (termini.length === 0) return []
 
-  const stmt = richiediDb().prepare(
+  return righe<Risultato>(
     `SELECT t.id, t.articolo, t.titolo, t.sintesi_operativa
        FROM ${tabella}_fts f
        JOIN ${tabella} t ON t.id = f.rowid
       WHERE ${tabella}_fts MATCH $q
       ORDER BY bm25(${tabella}_fts, 10.0, 5.0, 1.0)
       LIMIT $lim`,
+    { $q: termini.join(' AND '), $lim: limite },
   )
-  stmt.bind({ $q: termini.join(' AND '), $lim: limite })
-
-  const out: Risultato[] = []
-  while (stmt.step()) out.push(stmt.getAsObject() as unknown as Risultato)
-  stmt.free()
-  return out
 }
 
 /** Ricerca diretta per numero di articolo — la scorciatoia più usata. */
 export function perArticolo(tabella: Tabella, articolo: string): Risultato | null {
-  const stmt = richiediDb().prepare(
+  const r = righe<Risultato>(
     `SELECT id, articolo, titolo, sintesi_operativa FROM ${tabella} WHERE articolo = $a`,
+    { $a: articolo.trim().toLowerCase() },
   )
-  stmt.bind({ $a: articolo.trim().toLowerCase() })
-  const r = stmt.step() ? (stmt.getAsObject() as unknown as Risultato) : null
-  stmt.free()
-  return r
+  return r[0] ?? null
 }
 
 export interface TestoIntegrale {
@@ -194,11 +228,10 @@ export async function testoIntegrale(
 /** Metadati di build: la UI DEVE mostrare vigenza e data di aggiornamento. */
 export function meta(): Record<string, string> {
   const out: Record<string, string> = {}
-  const stmt = richiediDb().prepare('SELECT chiave, valore FROM meta')
-  while (stmt.step()) {
-    const r = stmt.getAsObject() as { chiave: string; valore: string }
+  for (const r of righe<{ chiave: string; valore: string }>(
+    'SELECT chiave, valore FROM meta',
+  )) {
     out[r.chiave] = r.valore
   }
-  stmt.free()
   return out
 }

@@ -15,8 +15,6 @@ pipeline/.cache/
 node_modules/
 frontend/dist/
 *.tsbuildinfo
-# Copiato da node_modules dallo script prebuild: non va versionato.
-frontend/public/sql-wasm.wasm
 
 # Artefatti dati per il deploy Pages (build unificata)
 dist-dati/
