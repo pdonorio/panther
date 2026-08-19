@@ -201,15 +201,30 @@ riflette. Il campo `importi_aggiornati_al` è obbligatorio in UI.
 | Terraform (AWS) | 💤 scritto, mai applicato — alternativa, non serve ora |
 | Frontend | 🚧 scheletro: caricamento DB e ricerca ci sono, manca la UI vera |
 | Contenuto editoriale | ❌ da iniziare |
-| Licenza dei dati | ❓ **da chiarire** (vedi sotto) |
+| Licenza dei dati | ✅ CC BY 4.0 (la clausola NC è scaduta il 2025-12-31) |
 
 ## Licenza
 
 Il **codice** di questo repository è rilasciato sotto licenza MIT
 (vedi [`LICENSE`](LICENSE)).
 
-I **dati** provengono da Normattiva e ricadono sotto la licenza del portale.
-Il portale referenzia sia CC BY 4.0 sia CC BY-NC 4.0 senza che sia stato
-possibile stabilire quale copra la collezione *Codici*: **va accertato prima di
-redistribuire `panther-core.db`**. Se fosse BY-NC, la restrizione è
-probabilmente ininfluente per uno strumento gratuito, ma va verificata.
+I **dati** provengono da Normattiva e ricadono sotto **CC BY 4.0**.
+
+Il portale nomina due licenze, ma non sono in conflitto: si succedono. La
+clausola non commerciale (`CC BY 4.0 NC`) valeva per la fase sperimentale,
+**chiusa il 31 dicembre 2025**; dal 1° gennaio 2026 tutti gli atti, in tutte le
+versioni, sono `CC BY 4.0`. Ricostruzione e citazioni testuali in
+[`docs/data-sources.md`](docs/data-sources.md#5-licenza--cc-by-40--chiarito-il-2026-08-19).
+
+A monte, il testo di legge non è protetto affatto: l'art. 5 L. 633/1941 esclude
+gli atti ufficiali dello Stato dal diritto d'autore. La licenza copre il lavoro
+del Poligrafico intorno al testo (marcatura, metadati, multivigenza).
+
+Obblighi che ne derivano, e che la UI deve rispettare: citare la fonte,
+dichiarare il carattere **non autentico e gratuito** del testo, indicare che i
+dati sono stati rielaborati. Sono nella tabella `meta` del DB — `licenza`,
+`licenza_url`, `attribuzione` — non solo qui.
+
+Spiegazione in linguaggio non tecnico, pensata per chi usa l'app e non per chi
+la sviluppa: [`/licenza-dati.html`](https://pdonorio.github.io/panther/licenza-dati.html)
+(sorgente in `frontend/public/`).

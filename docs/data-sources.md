@@ -129,18 +129,54 @@ corpo normativo, non concatenati.
 Il testo usa apostrofi ASCII al posto degli accenti (`puo'`, `ne'`) — da
 normalizzare per la ricerca FTS.
 
-## 5. Licenza — DA CHIARIRE prima della pubblicazione ⚠️
+## 5. Licenza — CC BY 4.0 ✅ (chiarito il 2026-08-19)
 
-La pagina *Dati disponibili* referenzia **due** licenze:
-`CC BY 4.0` e `CC BY-NC 4.0`. Il markup è minificato in un bundle Angular e non
-è stato possibile stabilire con certezza quale si applichi a quale dataset.
+Le due licenze non convivono: si **succedono nel tempo**. Il testo della pagina
+*Dati disponibili* è nel bundle Angular minificato (`main.*.js`), estratto e
+decodificato dalle stringhe `EFF()` del componente. Dice, testualmente:
 
-Ha impatto diretto: se la collezione «Codici» è **BY-NC**, `panther.db` non può
-essere redistribuito in un contesto commerciale. Per un tool gratuito per
-operatori di polizia la restrizione è probabilmente ininfluente, ma va accertata
-leggendo la pagina resa nel browser prima di pubblicare il database.
+> …partendo da una fase sperimentale con licenza di utilizzo dei dati
+> *"Creative Commons CC BY 4.0 NC"* e funzionalità limitate […]
+> **A decorrere dal 1° luglio 2025 e fino al 31 dicembre 2025** sarà possibile
+> scaricare e utilizzare i medesimi dati con licenza *"Creative Commons
+> CC BY 4.0"* e medesima paternità. La fase sperimentale terminerà il
+> 31 dicembre 2025 e **a decorrere dal 1° gennaio 2026** sarà possibile
+> scaricare e utilizzare con licenza *"Creative Commons CC BY 4.0"* e medesima
+> paternità i dati inerenti a **tutti** gli atti normativi pubblicati sul
+> portale Normattiva in versione: originaria, vigente ad una qualsiasi data
+> (point-in-time), multi-vigente.
 
-Da verificare anche `https://dati.normattiva.it/note-legali`.
+La clausola **NC valeva solo per la fase sperimentale, chiusa il 2025-12-31**.
+Oggi (2026) la collezione «Codici» in versione vigente ricade su **CC BY 4.0**,
+senza restrizione non commerciale. Nessun ostacolo a redistribuire
+`panther-core.db`.
+
+### A monte: il testo di legge non è protetto
+
+Indipendentemente dalla licenza del portale, l'**art. 5 L. 633/1941** dice:
+
+> Le disposizioni di questa legge non si applicano ai testi degli atti ufficiali
+> dello stato e delle Amministrazioni pubbliche, sia italiane che straniere.
+
+Il testo del Codice Penale e del CdS è quindi **fuori dal diritto d'autore per
+esclusione oggettiva**. Ciò che la licenza CC copre è il lavoro del Poligrafico
+*intorno* al testo: selezione, marcatura XML, metadati, multivigenza — cioè
+esattamente quello che consumiamo via API.
+
+### Cosa dobbiamo fare in concreto
+
+Dalle *Note legali* del portale:
+
+> L'unico testo ufficiale e definitivo è quello pubblicato sulla Gazzetta
+> Ufficiale Italiana a mezzo stampa, che prevale in casi di discordanza. La
+> riproduzione dei testi forniti nel formato elettronico è consentita purché
+> vengano menzionati **la fonte e il carattere non autentico e gratuito**.
+
+Sommato alla paternità richiesta da CC BY, l'obbligo è: citare Normattiva/IPZS,
+dichiarare che il testo non è autentico e che è fornito gratuitamente,
+segnalare che abbiamo rielaborato i dati. Sta nella tabella `meta` del DB
+(`licenza`, `licenza_url`, `attribuzione`), non solo in questo documento, così
+la UI può mostrarlo senza dipendere dalla memoria di chi la scrive.
 
 ## 6. Cosa NON viene dalle fonti pubbliche
 

@@ -143,6 +143,20 @@ def main() -> int:
                 ("articoli_cp", str(len(articoli["reati_cp"]))),
                 ("articoli_cds", str(len(articoli["cds"]))),
                 ("disclaimer", "Consultazione operativa, non fonte ufficiale."),
+                # Obblighi di licenza, nel DB e non solo nel README: la UI deve
+                # poterli mostrare senza che nessuno debba ricordarseli.
+                # Il portale chiede di menzionare fonte e "carattere non
+                # autentico e gratuito"; CC BY 4.0 chiede la paternità.
+                ("licenza", "CC BY 4.0"),
+                ("licenza_url", "https://creativecommons.org/licenses/by/4.0/deed.it"),
+                (
+                    "attribuzione",
+                    (
+                        "Fonte: Normattiva (dati.normattiva.it) — Istituto Poligrafico "
+                        "e Zecca dello Stato. Testo non autentico, riprodotto "
+                        "gratuitamente a scopo informativo."
+                    ),
+                ),
             ],
         )
     con.execute("VACUUM")

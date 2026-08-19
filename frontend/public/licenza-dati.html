@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Licenza dei dati — Panther</title>
+<meta name="description" content="Perché i testi di legge dentro Panther si possono usare e ridistribuire, e cosa la licenza non garantisce.">
+<meta name="theme-color" content="#f7f8fa">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --carta: #f7f8fa;
+    --inchiostro: #141a22;
+    --inchiostro-soft: #4a5563;
+    --bordo: #d4dae3;
+    --blu: #1b3a6b;
+    --blu-tenue: #e5ebf4;
+    --verde: #2c6e49;
+    --verde-tenue: #e4efe7;
+    --ambra: #8a5a0f;
+    --ambra-tenue: #f6eddc;
+
+    --misura: 66ch;
+    --passo: clamp(1.6rem, 4vw, 2.6rem);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --carta: #10151c;
+      --inchiostro: #e6ebf2;
+      --inchiostro-soft: #9aa7b8;
+      --bordo: #2a3542;
+      --blu: #8fb4e8;
+      --blu-tenue: #1a2534;
+      --verde: #7cc39a;
+      --verde-tenue: #16241d;
+      --ambra: #d9a24f;
+      --ambra-tenue: #2a2114;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --carta: #10151c;
+    --inchiostro: #e6ebf2;
+    --inchiostro-soft: #9aa7b8;
+    --bordo: #2a3542;
+    --blu: #8fb4e8;
+    --blu-tenue: #1a2534;
+    --verde: #7cc39a;
+    --verde-tenue: #16241d;
+    --ambra: #d9a24f;
+    --ambra-tenue: #2a2114;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--carta);
+    color: var(--inchiostro);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 1.02rem;
+    line-height: 1.62;
+    margin: 0;
+    padding: clamp(1.6rem, 5vw, 4.5rem) 1.25rem calc(var(--passo) * 2);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .foglio {
+    max-width: var(--misura);
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--passo);
+  }
+
+  h1, h2, h3 { font-family: Newsreader, Georgia, serif; text-wrap: balance; margin: 0; font-weight: 600; }
+  h1 { font-size: clamp(2.1rem, 6vw, 3.1rem); line-height: 1.12; letter-spacing: -0.015em; }
+  h2 { font-size: clamp(1.45rem, 3.6vw, 1.85rem); line-height: 1.2; }
+  h3 { font-size: 1.12rem; line-height: 1.3; }
+  p { margin: 0; }
+  a { color: var(--blu); text-underline-offset: 0.18em; text-decoration-thickness: 1px; }
+  a:focus-visible { outline: 2px solid var(--blu); outline-offset: 3px; border-radius: 2px; }
+
+  .occhiello {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.74rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--inchiostro-soft);
+  }
+
+  .testata { display: flex; flex-direction: column; gap: 0.85rem; }
+  .testata .occhiello { text-decoration: none; }
+  .sommario { font-size: 1.14rem; color: var(--inchiostro-soft); max-width: 58ch; }
+
+  section { display: flex; flex-direction: column; gap: 1rem; }
+
+  /* Verdetto: la risposta sta in cima, non in fondo. */
+  .verdetto {
+    border: 1px solid var(--bordo);
+    border-left: 3px solid var(--verde);
+    background: var(--verde-tenue);
+    padding: 1.35rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .verdetto .esito { font-family: Newsreader, Georgia, serif; font-size: 1.5rem; line-height: 1.25; }
+  .verdetto .esito strong { color: var(--verde); font-weight: 600; }
+
+  /* Cronologia: le due licenze non convivono, si succedono. */
+  .cronologia { display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; list-style: none; }
+  .cronologia li {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr;
+    gap: 0 1.4rem;
+    padding: 1.05rem 0;
+    border-top: 1px solid var(--bordo);
+    align-items: baseline;
+  }
+  .cronologia li:last-child { border-bottom: 1px solid var(--bordo); }
+  .cronologia .quando {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.82rem;
+    color: var(--inchiostro-soft);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+  }
+  .cronologia .cosa { display: flex; flex-direction: column; gap: 0.3rem; }
+  .cronologia .licenza { font-weight: 600; }
+  .cronologia .nota { color: var(--inchiostro-soft); font-size: 0.94rem; }
+  .cronologia li[data-stato="scaduta"] .licenza { color: var(--inchiostro-soft); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .cronologia li[data-stato="vigente"] { background: var(--blu-tenue); }
+  .cronologia li[data-stato="vigente"] .licenza { color: var(--blu); }
+  .cronologia li[data-stato="vigente"] .quando,
+  .cronologia li[data-stato="vigente"] .cosa { padding-inline: 0.9rem; }
+
+  @media (max-width: 34rem) {
+    .cronologia li { grid-template-columns: 1fr; gap: 0.35rem; }
+  }
+
+  blockquote {
+    margin: 0;
+    padding: 0.15rem 0 0.15rem 1.15rem;
+    border-left: 2px solid var(--bordo);
+    color: var(--inchiostro);
+    font-family: Newsreader, Georgia, serif;
+    font-size: 1.08rem;
+    line-height: 1.55;
+  }
+  blockquote cite {
+    display: block;
+    margin-top: 0.5rem;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.76rem;
+    font-style: normal;
+    letter-spacing: 0.05em;
+    color: var(--inchiostro-soft);
+  }
+
+  ul.punti { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+  ul.punti li { display: grid; grid-template-columns: 1.4rem 1fr; gap: 0.6rem; align-items: start; }
+  ul.punti li::before {
+    content: "";
+    width: 0.42rem; height: 0.42rem;
+    margin-top: 0.62rem; margin-left: 0.42rem;
+    background: var(--blu);
+    border-radius: 50%;
+  }
+
+  .avvertenza {
+    border: 1px solid var(--bordo);
+    border-left: 3px solid var(--ambra);
+    background: var(--ambra-tenue);
+    padding: 1.25rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+  .avvertenza h3 { color: var(--ambra); }
+
+  .fonti { border-top: 1px solid var(--bordo); padding-top: 1.4rem; display: flex; flex-direction: column; gap: 0.7rem; }
+  .fonti ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.55rem; font-size: 0.94rem; }
+  .fonti li { display: flex; flex-direction: column; gap: 0.1rem; }
+  .fonti .rif { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.78rem; color: var(--inchiostro-soft); word-break: break-word; }
+
+  .chiusa { color: var(--inchiostro-soft); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<div class="foglio">
+
+  <header class="testata">
+    <a class="occhiello" href="./">Panther · nota sui dati</a>
+    <h1>Da dove viene il testo di legge, e chi ci autorizza a usarlo</h1>
+    <p class="sommario">
+      Panther non trascrive i codici a mano: li scarica ogni notte da Normattiva, il
+      portale ufficiale dello Stato. Questa nota spiega a che titolo possiamo farlo,
+      e — più utile per chi la usa in servizio — che cosa quel testo <em>non</em> garantisce.
+    </p>
+  </header>
+
+  <div class="verdetto">
+    <span class="occhiello">La risposta in breve</span>
+    <p class="esito">I dati sono <strong>liberi</strong>: licenza Creative&nbsp;Commons CC&nbsp;BY&nbsp;4.0.</p>
+    <p>
+      Si possono scaricare, rielaborare, redistribuire e anche usare a fini commerciali.
+      L'unico obbligo serio è dire da dove vengono. Panther è comunque gratuita.
+    </p>
+  </div>
+
+  <section>
+    <h2>Perché sembrava un problema</h2>
+    <p>
+      Sul portale comparivano due licenze diverse: una libera e una che vietava l'uso
+      commerciale (la sigla <span class="occhiello">NC</span>, <em>non commercial</em>). Sembrava una
+      contraddizione da sciogliere. Non lo era: le due licenze non convivono, si
+      succedono nel tempo. Il Poligrafico ha aperto la banca dati a tappe.
+    </p>
+
+    <ol class="cronologia">
+      <li data-stato="scaduta">
+        <span class="quando">fino al<br>30 giu 2025</span>
+        <span class="cosa">
+          <span class="licenza">CC BY 4.0 NC</span>
+          <span class="nota">Fase sperimentale: dati aperti ma vietato l'uso commerciale, funzioni ridotte.</span>
+        </span>
+      </li>
+      <li data-stato="scaduta">
+        <span class="quando">1 lug 2025 –<br>31 dic 2025</span>
+        <span class="cosa">
+          <span class="licenza">CC BY 4.0</span>
+          <span class="nota">Cade il vincolo commerciale sugli stessi dati, ancora in fase sperimentale.</span>
+        </span>
+      </li>
+      <li data-stato="vigente">
+        <span class="quando">dal<br>1 gen 2026</span>
+        <span class="cosa">
+          <span class="licenza">CC BY 4.0 — è questa che ci riguarda</span>
+          <span class="nota">Finita la sperimentazione: tutti gli atti, in tutte le versioni (originaria, vigente a una data qualsiasi, multivigente).</span>
+        </span>
+      </li>
+    </ol>
+
+    <p>
+      Panther scarica i dati oggi, nel 2026. Ricade quindi nell'ultima riga: <strong>CC BY 4.0</strong>,
+      senza restrizione commerciale. Il vincolo <span class="occhiello">NC</span> che ci preoccupava è
+      scaduto il 31 dicembre 2025.
+    </p>
+  </section>
+
+  <section>
+    <h2>In realtà il testo di legge non è di nessuno</h2>
+    <p>
+      C'è un livello ancora prima della licenza. La legge sul diritto d'autore, quando
+      arriva agli atti dello Stato, si tira semplicemente indietro:
+    </p>
+    <blockquote>
+      Le disposizioni di questa legge non si applicano ai testi degli atti ufficiali
+      dello stato e delle Amministrazioni pubbliche, sia italiane che straniere.
+      <cite>art. 5 · L. 22 aprile 1941, n. 633</cite>
+    </blockquote>
+    <p>
+      Il testo del Codice Penale e del Codice della Strada non è protetto da copyright:
+      è di tutti, per esclusione espressa. Quello che la licenza Creative Commons copre
+      è il lavoro del Poligrafico <em>intorno</em> al testo — la selezione, la marcatura
+      informatica, i metadati, la ricostruzione delle versioni nel tempo. Cioè proprio
+      la parte che Panther consuma via API, ed è per questo che la licenza conta lo stesso.
+    </p>
+  </section>
+
+  <section>
+    <h2>Cosa siamo tenuti a fare in cambio</h2>
+    <p>
+      Poco, ma non zero. Sommando quello che chiede Creative Commons e quello che
+      chiedono le note legali del portale:
+    </p>
+    <ul class="punti">
+      <li>Citare la fonte: Normattiva, Istituto Poligrafico e Zecca dello Stato.</li>
+      <li>Dichiarare che il testo <strong>non è autentico</strong> e che è fornito gratuitamente.</li>
+      <li>Segnalare che i dati sono stati rielaborati — e lo sono: Panther li spacchetta, li normalizza e li reindicizza per la ricerca.</li>
+      <li>Linkare la licenza.</li>
+    </ul>
+    <p>
+      Queste quattro righe non stanno in un file di documentazione che nessuno apre:
+      sono scritte dentro il database che l'app si scarica, così la schermata delle
+      informazioni le può mostrare senza che nessuno debba ricordarsene.
+    </p>
+  </section>
+
+  <div class="avvertenza">
+    <h3>Quello che la licenza non ti dà</h3>
+    <p>
+      È la parte che conta davvero quando l'app è in mano a te, in servizio. Essere
+      autorizzati a ridistribuire il testo non significa che il testo faccia fede.
+    </p>
+    <ul class="punti">
+      <li><strong>Fa fede solo la Gazzetta Ufficiale a stampa.</strong> Lo dice il portale stesso: in caso di discordanza prevale quella. Panther è un promemoria, non una fonte da citare in un atto.</li>
+      <li><strong>Gli importi delle sanzioni del CdS sono fermi.</strong> Nel testo degli articoli restano quelli originari, ma l'art. 195 c.d.s. impone la rivalutazione ISTAT ogni due anni. Le cifre che leggi vanno verificate prima di metterle su un verbale.</li>
+      <li><strong>Il Poligrafico e la Presidenza del Consiglio non rispondono</strong> di errori o imprecisioni, né delle conseguenze di decisioni prese consultando il portale. A maggior ragione non ne rispondiamo noi.</li>
+      <li><strong>La raccolta è una selezione redazionale</strong>, per quanto ampia. Non è l'ordinamento intero.</li>
+    </ul>
+  </div>
+
+  <section>
+    <h2>Tradotto in pratica</h2>
+    <ul class="punti">
+      <li>L'app puoi tenerla, usarla e passarla a chi vuoi: nessuno deve chiedere permessi.</li>
+      <li>Usala per orientarti in fretta — che articolo è, cosa dice, che numero cercare.</li>
+      <li>Quando quello che trovi finisce in un atto, controllalo su Normattiva o sul codice cartaceo. Sempre, e in particolare gli importi.</li>
+      <li>Se un testo ti sembra sbagliato, probabilmente lo è per come lo abbiamo elaborato noi, non per come lo pubblica lo Stato: vale la pena segnalarlo.</li>
+    </ul>
+  </section>
+
+  <div class="fonti">
+    <span class="occhiello">Dove l'abbiamo verificato</span>
+    <ul>
+      <li>
+        <a href="https://dati.normattiva.it/">dati.normattiva.it</a> — pagina <em>Dati disponibili</em>, da cui vengono le tre fasi e le date
+        <span class="rif">testo estratto dal bundle del portale, verificato il 19 agosto 2026</span>
+      </li>
+      <li>
+        <a href="https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1941-04-22;633">L. 633/1941, art. 5</a> — esclusione degli atti ufficiali dal diritto d'autore
+        <span class="rif">urn:nir:stato:legge:1941-04-22;633</span>
+      </li>
+      <li>
+        <a href="https://creativecommons.org/licenses/by/4.0/deed.it">Creative Commons CC BY 4.0</a> — testo della licenza in italiano
+        <span class="rif">creativecommons.org/licenses/by/4.0/deed.it</span>
+      </li>
+    </ul>
+    <p class="chiusa">
+      Ricostruzione tecnica fatta leggendo le fonti sopra, non un parere legale. Se
+      Panther dovesse diventare qualcosa di più di uno strumento gratuito fra colleghi,
+      quel passaggio vale la pena farlo verificare da chi di dovere.
+    </p>
+  </div>
+
+</div>
+
+</body>
+</html>
