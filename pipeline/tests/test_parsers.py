@@ -58,6 +58,25 @@ def test_elisioni_intatte(elisione: str) -> None:
 @pytest.mark.parametrize(
     ("grezzo", "atteso"),
     [
+        # Regressione: "po'" è troncamento di «poco», non una tronca accentata.
+        ("un po' di tempo", "un po' di tempo"),
+        ("entro un po'.", "entro un po'."),
+        ("fa' fede", "fa' fede"),
+        # "da'" e "di'" invece sono accenti resi in ASCII: vanno ripristinati.
+        ("da' luogo a sanzione", "dà luogo a sanzione"),
+        ("entro il di' successivo", "entro il dì successivo"),
+        # E le tronche vere continuano a funzionare.
+        ("la velocita' e' quella", "la velocità è quella"),
+    ],
+)
+def test_tronche_che_tengono_apostrofo(grezzo: str, atteso: str) -> None:
+    """L'apostrofo di troncamento non è un accento reso in ASCII."""
+    assert normalizza_testo(grezzo) == atteso
+
+
+@pytest.mark.parametrize(
+    ("grezzo", "atteso"),
+    [
         ("( (Circostanza aggravante del reato transnazionale).)", "Circostanza aggravante del reato transnazionale"),
         ("(Omicidio)", "Omicidio"),
         ("( (Istigazione). )", "Istigazione"),

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   caricaDb,
   cerca,
+  importiAggiornatiAl,
   meta,
   perArticolo,
   testoIntegrale,
@@ -26,6 +27,7 @@ export default function App() {
   const [query, setQuery] = useState('')
   const [risultati, setRisultati] = useState<Risultato[]>([])
   const [aperto, setAperto] = useState<TestoIntegrale | null>(null)
+  const [importiAl, setImportiAl] = useState('')
   const [metadati, setMetadati] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -113,6 +115,7 @@ export default function App() {
             <button
               onClick={() => {
                 setAperto(null)
+                setImportiAl(tabella === 'cds' ? importiAggiornatiAl(r.articolo) : '')
                 testoIntegrale(tabella, r.articolo).then(setAperto).catch(() => setAperto(null))
               }}
             >
@@ -139,6 +142,17 @@ export default function App() {
           <h2>
             Art. {aperto.articolo} — {aperto.rubrica}
           </h2>
+          {/* Art. 195 c.d.s.: gli importi vanno rivalutati ogni due anni e il
+              testo dell'articolo non lo riflette. Finché il dato editoriale
+              non c'è, l'unica versione onesta è dirlo su ogni schermata che
+              mostra un importo. */}
+          {tabella === 'cds' && (
+            <p className="avviso">
+              {importiAl
+                ? `Importi aggiornati al ${importiAl}.`
+                : 'Importi non rivalutati (art. 195 c.d.s.): verificare la cifra vigente prima di contestare.'}
+            </p>
+          )}
           {aperto.commi.map((c, i) => (
             <p key={i}>{c}</p>
           ))}
@@ -155,10 +169,28 @@ export default function App() {
         </section>
       )}
 
+      {/* Gli obblighi di licenza stanno nella tabella meta e non solo nei
+          documenti proprio perché la UI non possa ometterli. */}
       <footer className="fioco">
         Fonte: {metadati.fonte} · build {metadati.build_date} · vigente
         <br />
         {metadati.disclaimer}
+        {metadati.attribuzione && (
+          <>
+            <br />
+            {metadati.attribuzione}
+          </>
+        )}
+        {metadati.licenza && (
+          <>
+            <br />
+            Testi in{' '}
+            <a href={metadati.licenza_url} target="_blank" rel="noopener noreferrer">
+              {metadati.licenza}
+            </a>{' '}
+            · <a href={`${import.meta.env.BASE_URL}licenza-dati.html`}>Dettagli sulla licenza</a>
+          </>
+        )}
       </footer>
     </main>
   )

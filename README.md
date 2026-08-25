@@ -168,7 +168,9 @@ pipeline:
 
 Il testo NIR rende inoltre gli accenti come apostrofo ASCII (`velocita'`):
 la normalizzazione li ripristina con una regola sulla vocale finale, senza
-toccare le elisioni (`dell'alcool`, `un'auto`).
+toccare le elisioni (`dell'alcool`, `un'auto`). Fanno eccezione le tronche in
+cui l'apostrofo non è un accento e va lasciato dov'è — `po'` su tutte, che
+altrimenti diventerebbe *pò*.
 
 ### Cosa la pipeline non può produrre
 
@@ -187,14 +189,16 @@ quindi cercare *"ebbrezza"* non trova l'art. 186 (la cui rubrica dice
 
 ⚠️ **Importi del CdS**: quelli nel testo degli articoli non sono aggiornati.
 L'art. 195 c.d.s. impone la rivalutazione ISTAT biennale, che il testo non
-riflette. Il campo `importi_aggiornati_al` è obbligatorio in UI.
+riflette. Il campo `importi_aggiornati_al` è obbligatorio in UI: finché è
+vuoto, ogni articolo del CdS mostra in chiaro che gli importi non sono
+rivalutati.
 
 ## Stato
 
 | Componente | Stato |
 |---|---|
 | Client API Normattiva | ✅ funzionante, verificato su dati reali |
-| Parser CP / CdS | ✅ 945 e 266 articoli, 25 test verdi |
+| Parser CP / CdS | ✅ 945 e 266 articoli, 36 test verdi |
 | Build SQLite + FTS5 | ✅ 0.5 MB core + 2.2 MB testi |
 | Workflow CI / deploy | ✅ verdi sul deploy reale |
 | GitHub Pages | ✅ online, ETag verificato (`304`) |

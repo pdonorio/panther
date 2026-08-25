@@ -205,6 +205,19 @@ export function perArticolo(tabella: Tabella, articolo: string): Risultato | nul
   return r[0] ?? null
 }
 
+/**
+ * Data di rivalutazione ISTAT degli importi (art. 195 c.d.s.). Resta vuota
+ * finché il contenuto editoriale non è scritto: in quel caso la UI non deve
+ * tacere, deve dire che gli importi a schermo non sono rivalutati.
+ */
+export function importiAggiornatiAl(articolo: string): string {
+  const r = righe<{ importi_aggiornati_al: string }>(
+    'SELECT importi_aggiornati_al FROM cds WHERE articolo = $a',
+    { $a: articolo.trim().toLowerCase() },
+  )
+  return r[0]?.importi_aggiornati_al ?? ''
+}
+
 export interface TestoIntegrale {
   articolo: string
   rubrica: string

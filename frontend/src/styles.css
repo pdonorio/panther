@@ -7,6 +7,9 @@
   --testo: #e7edf3;
   --fioco: #8fa3b8;
   --acc: #3d8bfd;
+  /* Allerta: leggibile in pieno sole, distinta dall'accento di navigazione. */
+  --avviso: #f0b849;
+  --avviso-sup: #2a2114;
   color-scheme: dark;
 }
 
@@ -75,7 +78,24 @@ h1 { font-size: 1.35rem; margin: 0 0 .75rem; letter-spacing: .02em; }
   background: transparent; color: var(--fioco); border: 0;
 }
 
+/* Avviso sugli importi: sta sopra il testo, non in fondo, perché è lì che
+   l'operatore legge la cifra. */
+.avviso {
+  margin: 0 0 .75rem;
+  padding: .55rem .7rem;
+  font-size: .82rem;
+  color: var(--avviso);
+  background: var(--avviso-sup);
+  border: 1px solid var(--avviso);
+  border-radius: .4rem;
+}
+
 .fioco { color: var(--fioco); font-size: .85rem; }
 footer { margin: 2rem 0 1rem; text-align: center; }
+footer a { color: var(--acc); text-underline-offset: .18em; }
+
+a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--acc); outline-offset: 2px; border-radius: .2rem;
+}
 
 button { cursor: pointer; font: inherit; }
