@@ -26,6 +26,12 @@ log = logging.getLogger(__name__)
 
 SCHEMA = Path(__file__).with_name("schema.sql")
 
+# Va alzata a ogni modifica di schema.sql che il client debba vedere.
+# Il client tiene il DB in IndexedDB: senza questo confronto, dopo un cambio di
+# schema può servire per sempre una copia vecchia a del codice nuovo, e le
+# query falliscono su tabelle che nella sua copia non esistono.
+SCHEMA_VERSION = "2"
+
 # Permalink stabile per articolo (fallback online).
 URN_CP = "urn:nir:stato:regio.decreto:1930-10-19;1398"
 URN_CDS = "urn:nir:stato:decreto.legislativo:1992-04-30;285"
@@ -78,7 +84,7 @@ def _inserisci(
 
 
 def _scrivi_testi(dest: Path, tabella: str, articoli: list[Articolo]) -> int:
-    """Un JSON per articolo, servito on-demand da CloudFront."""
+    """Un JSON per articolo, servito on-demand da GitHub Pages."""
     d = dest / "testi" / tabella
     d.mkdir(parents=True, exist_ok=True)
     tot = 0
@@ -137,6 +143,7 @@ def main() -> int:
         con.executemany(
             "INSERT INTO meta (chiave, valore) VALUES (?,?)",
             [
+                ("schema_version", SCHEMA_VERSION),
                 ("build_date", oggi),
                 ("fonte", "Normattiva OpenData"),
                 ("vigenza", "V"),
@@ -166,6 +173,7 @@ def main() -> int:
 
     manifest = {
         "build_date": oggi,
+        "schema_version": SCHEMA_VERSION,
         "core_db_bytes": db.stat().st_size,
         "core_db_sha256": hashlib.sha256(db.read_bytes()).hexdigest(),
         "testi_bytes": testi,

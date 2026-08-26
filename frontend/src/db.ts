@@ -26,6 +26,12 @@ const IDB_STORE = 'cache'
 const KEY_DB = 'core-db'
 const KEY_ETAG = 'core-db-etag'
 
+// Schema che QUESTO codice sa interrogare. Il DB vive in IndexedDB e
+// sopravvive agli aggiornamenti del bundle: senza questo confronto, dopo un
+// cambio di schema il client può aprire per sempre una copia vecchia e fallire
+// su tabelle che lì non esistono. Va tenuta allineata a build.py::SCHEMA_VERSION.
+const SCHEMA_VERSION = '2'
+
 // --------------------------------------------------------------- IndexedDB
 
 function apriIdb(): Promise<IDBDatabase> {
@@ -86,6 +92,34 @@ function apriDaBytes(buf: ArrayBuffer): Database {
   return d
 }
 
+/** Versione di schema dichiarata da un DB già aperto. */
+function versioneSchema(d: Database): string {
+  try {
+    const r = d.exec({
+      sql: "SELECT valore FROM meta WHERE chiave = 'schema_version'",
+      rowMode: 'object',
+      returnValue: 'resultRows',
+    }) as unknown as { valore: string }[]
+    return r[0]?.valore ?? ''
+  } catch {
+    // Nemmeno la tabella meta: è una copia troppo vecchia per essere letta.
+    return ''
+  }
+}
+
+/**
+ * Apre la copia in cache solo se il suo schema è quello che questo codice sa
+ * interrogare. Se non lo è la chiude e la butta: meglio ripartire dalla rete
+ * che rispondere male. Offline e con una copia inservibile non si può fare
+ * niente di utile, e l'errore lo vede la UI.
+ */
+function apriSeCompatibile(buf: ArrayBuffer): Database | null {
+  const d = apriDaBytes(buf)
+  if (versioneSchema(d) === SCHEMA_VERSION) return d
+  d.close()
+  return null
+}
+
 /**
  * Carica il DB, preferendo la copia locale. Ritorna come è andata, così la UI
  * può dire all'operatore se sta lavorando su dati freschi o su cache.
@@ -102,8 +136,12 @@ export async function caricaDb(): Promise<StatoCaricamento> {
 
   // Offline: se abbiamo una copia si parte comunque. È il caso d'uso primario.
   if (!navigator.onLine && bufCache) {
-    db = apriDaBytes(bufCache)
-    return 'cache'
+    const d = apriSeCompatibile(bufCache)
+    if (d) {
+      db = d
+      return 'cache'
+    }
+    throw new Error('La copia locale è di una versione precedente: serve una connessione per aggiornarla.')
   }
 
   let risposta: Response
@@ -113,20 +151,35 @@ export async function caricaDb(): Promise<StatoCaricamento> {
       cache: 'no-cache',
     })
   } catch (e) {
-    if (bufCache) {
-      db = apriDaBytes(bufCache)
+    const d = bufCache && apriSeCompatibile(bufCache)
+    if (d) {
+      db = d
       return 'cache'
     }
     throw e
   }
 
   if (risposta.status === 304 && bufCache) {
-    db = apriDaBytes(bufCache)
-    return 'cache'
+    const d = apriSeCompatibile(bufCache)
+    if (d) {
+      db = d
+      return 'cache'
+    }
+    // Schema vecchio ma il server dice "non modificato": la copia non si può
+    // usare e l'ETag mente. Si riscarica ignorandolo.
+    const forzata = await fetch(DB_URL, { cache: 'reload' })
+    if (!forzata.ok) throw new Error(`Download del database fallito: HTTP ${forzata.status}`)
+    const buf = await forzata.arrayBuffer()
+    db = apriDaBytes(buf)
+    await idbSet(KEY_DB, buf)
+    const etag = forzata.headers.get('ETag')
+    if (etag) await idbSet(KEY_ETAG, etag)
+    return 'aggiornato'
   }
   if (!risposta.ok) {
-    if (bufCache) {
-      db = apriDaBytes(bufCache)
+    const d = bufCache && apriSeCompatibile(bufCache)
+    if (d) {
+      db = d
       return 'cache'
     }
     throw new Error(`Download del database fallito: HTTP ${risposta.status}`)
