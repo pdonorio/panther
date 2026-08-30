@@ -48,12 +48,25 @@ _E_ACUTA = {
 }
 _RE_TRONCA = re.compile(r"\b(\w*?)([aeiou])'(?![\w'])", re.IGNORECASE | re.UNICODE)
 
+# Tronche in cui l'apostrofo NON è un accento reso in ASCII e va lasciato dov'è.
+# "po'" (troncamento di «poco») è l'unico che ricorre davvero nel testo di
+# legge, e senza questa eccezione diventa "pò", che è un errore di ortografia.
+# Gli imperativi tronchi sono rari in un codice ma seguono la stessa regola:
+# "fà", "và", "stà" non esistono, quindi l'eccezione non può togliere nulla.
+# Restano fuori di proposito due casi in cui l'apostrofo È un accento:
+#   "da'" -> «dà», che nel testo NIR è la terza persona di dare, non l'imperativo;
+#   "di'" -> «dì», che in un testo del 1930 vuol dire «giorno» molto più spesso
+#            di quanto sia l'imperativo di dire.
+_APOSTROFO_RESTA = {"po", "fa", "va", "sta"}
+
 # Spazi da compattare: include NBSP (U+00A0), usato a piene mani nel testo NIR.
 _RE_SPAZI = re.compile("[ \t\u00a0\u2007\u202f]+")
 
 
 def _accenta(m: re.Match[str]) -> str:
     testa, vocale = m.group(1), m.group(2)
+    if (testa + vocale).lower() in _APOSTROFO_RESTA:
+        return m.group(0)
     bassa = vocale.lower()
     if bassa == "e":
         parola = (testa + vocale).lower()

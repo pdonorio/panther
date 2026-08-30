@@ -1,0 +1,105 @@
+# Scheda intervento — bozza NON VERIFICATA.
+#
+# Il contenuto viene dalla Top 20 proposta da Antonio (conversazione ChatGPT,
+# 2026-08-26) ed è qui come esempio della forma, non come guida operativa.
+# Nessuna riga di questo file deve arrivare in produzione prima che un
+# operatore l'abbia riletta e abbia compilato `autore` e `verificata_il`.
+# La build rifiuta le schede senza quei due campi (vedi editorial/README.md).
+
+slug: lite-aggressione
+posizione: 1
+titolo: Lite / aggressione tra persone
+categoria: pg
+urgenza: attenzione
+
+# Verifica trasversale, non categoria: la presenza di un minore cambia gli
+# obblighi anche quando l'intervento non è "un intervento sui minori".
+coinvolge_minori: true
+
+tag: [lite, rissa, lesioni, percosse, aggressione]
+
+descrizione: >
+  Intervento su lite o aggressione fra persone, con o senza lesioni.
+  Comprende tipicamente più fattispecie insieme: percosse, lesioni,
+  minaccia, violenza privata.
+
+accertamenti_fondamentali: |
+  Sicurezza
+  - separare i soggetti
+  - verificare la presenza di armi
+  - verificare se ci sono altre persone coinvolte
+  - verificare la presenza di minori
+  - valutare la necessità del 118
+
+  Identificare
+  - persona offesa
+  - autore o autori
+  - testimoni
+
+  Ricostruire i fatti
+  - chi ha aggredito chi
+  - modalità
+  - oggetti utilizzati
+  - lesioni visibili
+  - presenza di telecamere
+  - eventuali episodi precedenti
+
+procedibilita: >
+  DA VERIFICARE E SCRIVERE. Va distinto il procedibile d'ufficio dal
+  procedibile a querela, e va spiegato all'operatore il perché — è la
+  sezione che fa la differenza fra una scheda utile e un elenco di articoli.
+
+poteri_operativi: >
+  DA VERIFICARE E SCRIVERE.
+
+consigli_operativi: >
+  DA VERIFICARE E SCRIVERE.
+
+errori_ricorrenti: >
+  DA VERIFICARE E SCRIVERE.
+
+casi_particolari: >
+  DA VERIFICARE E SCRIVERE. Almeno: lite in contesto familiare, che può
+  ricadere nella scheda violenza-domestica e cambia il quadro.
+
+atti_da_redigere:
+  - Annotazione di P.G.
+  - Comunicazione di notizia di reato
+  - Verbale di identificazione
+  - Dichiarazione/elezione di domicilio
+  - Nomina difensore, ove necessaria
+  - Verbale di querela, se presentata
+  - Verbale sommarie informazioni testimoniali
+  - Documentazione fotografica delle lesioni e dei luoghi
+  - Acquisizione del referto medico
+  - Eventuali atti relativi al sequestro
+
+# I riferimenti che Panther ha in archivio si scrivono con tabella+articolo:
+# la build li risolve, ne congela l'hash e da lì in poi sa dire se la norma
+# è cambiata sotto la scheda. Quelli che non abbiamo (c.p.p., leggi speciali)
+# si scrivono con la sola citazione: si mostrano, ma non sono controllabili.
+riferimenti:
+  - tabella: reati_cp
+    articolo: "581"
+    citazione: art. 581 c.p. — percosse
+    ruolo: principale
+  - tabella: reati_cp
+    articolo: "582"
+    citazione: art. 582 c.p. — lesioni personali
+    ruolo: principale
+  - tabella: reati_cp
+    articolo: "610"
+    citazione: art. 610 c.p. — violenza privata
+    ruolo: concorrente
+  - tabella: reati_cp
+    articolo: "612"
+    citazione: art. 612 c.p. — minaccia
+    ruolo: concorrente
+
+# Riferimenti alla modulistica, per slug. I PDF stanno in dist/modulistica/
+# e li carica Antonio: qui c'è solo il collegamento.
+modulistica: []
+
+# Compilare SOLO dopo rilettura da parte di un operatore.
+autore: ""
+verificata_il: ""
