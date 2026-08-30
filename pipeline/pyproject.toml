@@ -18,6 +18,13 @@ panther-build = "panther_pipeline.build:main"
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
+# editorial/ sta dentro pipeline/ ma NON è un package Python: è contenuto
+# redazionale in YAML. Senza questa riga l'autodiscovery flat-layout di
+# setuptools lo vede come secondo package top-level e rifiuta di costruire
+# ("Multiple top-level packages discovered in a flat-layout").
+[tool.setuptools.packages.find]
+include = ["panther_pipeline*"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
