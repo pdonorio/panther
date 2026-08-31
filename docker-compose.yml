@@ -1,0 +1,36 @@
+# Sviluppo locale. Non è una configurazione di produzione: le credenziali qui
+# sono volutamente banali e il database non è esposto fuori da localhost.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: panther
+      POSTGRES_PASSWORD: panther
+      POSTGRES_DB: panther
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - panther-db:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready` risponde prima che il database accetti davvero query:
+      # senza il controllo il backend parte e muore alla prima connessione.
+      test: ["CMD-SHELL", "pg_isready -U panther -d panther"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      PANTHER_DATABASE_URL: postgresql+psycopg://panther:panther@db:5432/panther
+      PANTHER_DEBUG: "true"
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  panther-db:
