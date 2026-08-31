@@ -29,6 +29,42 @@ jobs:
         working-directory: pipeline
         run: pytest -q
 
+  # I test del backend girano contro un Postgres vero, non un doppio in
+  # memoria: unaccent, tsvector e i vincoli sono comportamento Postgres, e un
+  # doppio li nasconderebbe fino alla produzione.
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: panther
+          POSTGRES_PASSWORD: panther
+          POSTGRES_DB: panther
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U panther -d panther"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      PANTHER_DATABASE_URL: postgresql+psycopg://panther:panther@localhost:5432/panther
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - working-directory: backend
+        run: pip install -e '.[dev]'
+      - name: Lint
+        working-directory: backend
+        run: ruff check .
+      - name: Estensioni Postgres
+        run: psql "$PANTHER_DATABASE_URL_PSQL" -c 'CREATE EXTENSION IF NOT EXISTS unaccent;'
+        env:
+          PGPASSWORD: panther
+          PANTHER_DATABASE_URL_PSQL: postgresql://panther@localhost:5432/panther
+      - name: Test
+        working-directory: backend
+        run: pytest -q
+
   # Il deploy costruisce il frontend: se `tsc` rompe, rompe la pubblicazione.
   # Meglio accorgersene in PR.
   frontend:

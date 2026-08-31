@@ -1,0 +1,45 @@
+[project]
+name = "panther-backend"
+version = "0.1.0"
+description = "Backend Panther — Postgres come sorgente di verità"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "psycopg[binary]>=3.2",
+    "pydantic-settings>=2.4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.5", "httpx>=0.27"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+# tests/ e alembic/ stanno dentro backend/ ma non sono package da distribuire.
+# Senza questa riga l'autodiscovery flat-layout di setuptools li vede come
+# package top-level e si rifiuta di costruire — è già successo con
+# pipeline/editorial/, e ha rotto la CI.
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+# Le regole vanno dichiarate, non lasciate al default: senza `select` esplicito
+# la lint locale e quella in CI possono divergere, ed è già successo.
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+# `alembic` è una libreria installata, non codice nostro: senza questa riga
+# isort la scambia per package locale — c'è una cartella backend/alembic/ — e
+# la mette nel blocco sbagliato.
+[tool.ruff.lint.isort]
+known-third-party = ["alembic"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

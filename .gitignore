@@ -1,3 +1,8 @@
+# Segreti: config.py legge un .env, che contiene le credenziali del database.
+.env
+.env.*
+!.env.example
+
 # Python
 __pycache__/
 *.py[cod]
