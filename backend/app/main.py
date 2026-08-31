@@ -7,6 +7,7 @@ con le fasi successive (schema e ingest, auth, lettura, modulistica).
 from __future__ import annotations
 
 import logging
+from typing import Annotated
 
 from fastapi import Depends, FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -39,7 +40,7 @@ app.add_middleware(
 
 
 @app.get("/health")
-def salute(db: Session = Depends(sessione)) -> JSONResponse:
+def salute(db: Annotated[Session, Depends(sessione)]) -> JSONResponse:
     """Salute del servizio, database compreso.
 
     Un health check che non tocca il database mente: il processo può stare in

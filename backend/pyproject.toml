@@ -30,5 +30,16 @@ include = ["app*"]
 line-length = 100
 target-version = "py311"
 
+# Le regole vanno dichiarate, non lasciate al default: senza `select` esplicito
+# la lint locale e quella in CI possono divergere, ed è già successo.
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+# `alembic` è una libreria installata, non codice nostro: senza questa riga
+# isort la scambia per package locale — c'è una cartella backend/alembic/ — e
+# la mette nel blocco sbagliato.
+[tool.ruff.lint.isort]
+known-third-party = ["alembic"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

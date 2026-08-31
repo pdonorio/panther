@@ -12,12 +12,12 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+# app.models sta qui perché Base.metadata sia popolata prima che Alembic la
+# legga: senza, l'autogenerate produce migrazioni vuote. Ogni modello nuovo va
+# esportato da app/models/__init__.py, o la migrazione non lo vedrà.
+import app.models  # noqa: F401
 from app.config import impostazioni
 from app.db import Base
-
-# Importa i modelli perché Base.metadata sia popolata: senza, l'autogenerate
-# produce migrazioni vuote. Ogni modello nuovo va esportato da app.models.
-import app.models  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", impostazioni().database_url)
